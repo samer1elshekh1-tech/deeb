@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>منصة المعلم التعليمية — الباقات ولوحة تحكم المستر</title>
+
+  <!-- خط Cairo العربي -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Cairo', 'system-ui', '-apple-system', 'sans-serif'],
+            display: ['Cairo', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+
+    body {
+      font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+      background-color: #060913;
+      color: #f8fafc;
+      overflow-x: hidden;
+      margin: 0;
+    }
+
+    /* =====================================================================
+       خلفية متحركة بطيئة بنمط داكن احترافي (Slow Ambient Drifting Background)
+       ===================================================================== */
+    .ambient-stage {
+      position: fixed;
+      inset: 0;
+      z-index: -10;
+      overflow: hidden;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 18% 15%, rgba(79, 70, 229, 0.22), transparent 46%),
+        radial-gradient(circle at 82% 22%, rgba(16, 185, 129, 0.16), transparent 44%),
+        radial-gradient(circle at 50% 88%, rgba(245, 158, 11, 0.12), transparent 50%),
+        linear-gradient(180deg, #050811 0%, #0b1120 55%, #060913 100%);
+    }
+
+    .ambient-dots {
+      position: absolute;
+      inset: -15%;
+      background-image: radial-gradient(rgba(148, 163, 184, 0.14) 1px, transparent 1px);
+      background-size: 28px 28px;
+      will-change: transform, opacity;
+      animation: slowGridDrift 28s ease-in-out infinite alternate;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 9999px;
+      filter: blur(85px);
+      will-change: transform, opacity;
+    }
+
+    .orb-indigo {
+      width: 480px;
+      height: 480px;
+      top: -110px;
+      right: -80px;
+      background: rgba(79, 70, 229, 0.28);
+      animation: driftOne 24s ease-in-out infinite alternate;
+    }
+
+    .orb-emerald {
+      width: 430px;
+      height: 430px;
+      top: 38%;
+      left: -110px;
+      background: rgba(16, 185, 129, 0.2);
+      animation: driftTwo 29s ease-in-out infinite alternate;
+    }
+
+    .orb-amber {
+      width: 460px;
+      height: 460px;
+      bottom: -140px;
+      right: 22%;
+      background: rgba(245, 158, 11, 0.15);
+      animation: driftThree 26s ease-in-out infinite alternate;
+    }
+
+    @keyframes driftOne {
+      0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.72; }
+      50% { transform: translate3d(-45px, 35px, 0) scale(1.06); opacity: 0.92; }
+      100% { transform: translate3d(-18px, 75px, 0) scale(0.97); opacity: 0.75; }
+    }
+
+    @keyframes driftTwo {
+      0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.65; }
+      50% { transform: translate3d(55px, -35px, 0) scale(1.08); opacity: 0.88; }
+      100% { transform: translate3d(25px, 45px, 0) scale(0.96); opacity: 0.7; }
+    }
+
+    @keyframes driftThree {
+      0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.65; }
+      50% { transform: translate3d(-40px, -45px, 0) scale(1.05); opacity: 0.85; }
+      100% { transform: translate3d(35px, -18px, 0) scale(1.01); opacity: 0.7; }
+    }
+
+    @keyframes slowGridDrift {
+      0% { transform: translate3d(0, 0, 0); opacity: 0.35; }
+      100% { transform: translate3d(24px, 24px, 0); opacity: 0.6; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .orb, .ambient-dots {
+        animation: none !important;
+        transform: none !important;
+      }
+    }
+
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.78);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+    }
+
+    .glass-header {
+      background: rgba(9, 13, 26, 0.88);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+    }
+  </style>
+</head>
+<body>
+  <!-- الخلفية المتحركة البطيئة -->
+  <div class="ambient-stage" aria-hidden="true">
+    <div class="ambient-dots"></div>
+    <div class="orb orb-indigo"></div>
+    <div class="orb orb-emerald"></div>
+    <div class="orb orb-amber"></div>
+  </div>
+
+  <!-- حاوية التطبيق الرئيسية -->
+  <div id="app" class="min-h-screen flex flex-col"></div>
+
+  <script>
+    // =========================================================================
+    // التخزين المحلي والبيانات الافتراضية لمنصة المعلم
+    // =========================================================================
+    const STORAGE_KEY = 'tafawoq_teacher_portal_standalone_v1';
+
+    const PACKAGES = [
+      {
+        id: 'open',
+        name: 'الباقة المفتوحة (VIP)',
+        badge: 'الأكثر اختياراً',
+        subtitle: 'انطلق بلا حدود واستقبل أي عدد من الطلاب بدون أي قيود أو رسوم إضافية',
+        monthlyPrice: 2199,
+        yearlyMonthlyPrice: 1832,
+        hook: 'تكلفتها أقل من اشتراك 10 طلاب فقط شهرياً — وباقي طلابك ربح صافي 100%',
+        extraStudent: '0 ج.م (عدد طلاب غير محدود)',
+        featured: true,
+        features: [
+          { text: 'عدد طلاب غير محدود نهائياً', ok: true, strong: true },
+          { text: 'تطبيق موبايل خاص باسمك وشعارك', ok: true, strong: true },
+          { text: 'تشفير وحماية قصوى للفيديوهات ضد التصوير (DRM)', ok: true },
+          { text: 'توليد أكواد تفعيل غير محدودة للطلاب', ok: true },
+          { text: 'نظام امتحانات وواجبات وتقارير لولي الأمر', ok: true },
+          { text: 'دعم فني VIP مخصص على مدار الساعة', ok: true }
+        ]
+      },
+      {
+        id: 'pro',
+        name: 'الباقة البرو (Pro)',
+        badge: 'مقيدة بـ 300 طالب',
+        subtitle: 'مميزات متقدمة للمجموعات المتوسطة ولكن بسعة طلاب محددة شهرياً',
+        monthlyPrice: 1799,
+        yearlyMonthlyPrice: 1499,
+        hook: 'فارق 400 ج.م فقط شهرياً يفصلك عن الباقة المفتوحة بلا قيود!',
+        extraStudent: '+15 ج.م لكل طالب إضافي',
+        featured: false,
+        decoy: true,
+        features: [
+          { text: 'بحد أقصى 300 طالب نشط شهرياً', ok: true, warn: true },
+          { text: 'بدون تطبيق موبايل خاص (ويب فقط)', ok: false },
+          { text: 'حماية قياسية بعلامة مائية متحركة', ok: true },
+          { text: 'توليد أكواد تفعيل للطلاب', ok: true },
+          { text: 'نظام امتحانات وواجبات وتصحيح تلقائي', ok: true },
+          { text: 'دعم فني عبر التذاكر خلال 24 ساعة', ok: true }
+        ]
+      },
+      {
+        id: 'basic',
+        name: 'الباقة العادية (البداية)',
+        badge: 'مقيدة بـ 100 طالب',
+        subtitle: 'بداية اقتصادية لتجربة التعليم الأونلاين مع مجموعة صغيرة',
+        monthlyPrice: 799,
+        yearlyMonthlyPrice: 666,
+        hook: 'حد أقصى 100 طالب — مناسبة للمجموعات الصغيرة جداً',
+        extraStudent: '+15 ج.م لكل طالب إضافي',
+        featured: false,
+        features: [
+          { text: 'بحد أقصى 100 طالب فقط شهرياً', ok: true, warn: true },
+          { text: 'بدون تطبيق موبايل خاص', ok: false },
+          { text: 'بدون تشفير متقدم للفيديو', ok: false },
+          { text: 'توليد أكواد تفعيل يدوية', ok: true },
+          { text: 'اختبارات اختيار من متعدد فقط', ok: true },
+          { text: 'دعم فني عبر البريد الإلكتروني', ok: true }
+        ]
+      }
+    ];
+
+    const DEFAULT_COURSES = [
+      {
+        id: 'crs-1',
+        title: 'الفيزياء الكهربية والتيار المستمر — الصف الثالث الثانوي',
+        grade: 'الصف الثالث الثانوي - ثانوية عامة',
+        price: 350,
+        studentsCount: 412,
+        published: true,
+        lessons: [
+          { id: 'les-1', title: 'المحاضرة 1: شدة التيار وفرق الجهد وقانون أوم', videoUrl: 'https://video.tafawoq.edu/lec1', pdfNote: 'ملخص_قانون_أوم.pdf', published: true },
+          { id: 'les-2', title: 'المحاضرة 2: توصيل المقاومات على التوالي والتوازي', videoUrl: 'https://video.tafawoq.edu/lec2', pdfNote: 'خرائط_المقاومات.pdf', published: true },
+          { id: 'les-3', title: 'المحاضرة 3: قانونا كيرشوف وحل الدوائر المعقدة', videoUrl: 'https://video.tafawoq.edu/lec3', pdfNote: 'مسائل_كيرشوف.pdf', published: false }
+        ]
+      },
+      {
+        id: 'crs-2',
+        title: 'المراجعة النهائية في الفيزياء الحديثة — 3 ثانوي',
+        grade: 'الصف الثالث الثانوي - ثانوية عامة',
+        price: 400,
+        studentsCount: 285,
+        published: true,
+        lessons: [
+          { id: 'les-21', title: 'المحاضرة 1: ازدواجية الموجة والجسيم وتأثير كومتون', videoUrl: 'https://video.tafawoq.edu/mod1', pdfNote: 'مذكرة_الحديثة.pdf', published: true }
+        ]
+      }
+    ];
+
+    const DEFAULT_CODES = [
+      { id: 'cd-1', code: 'TAFAWOQ-2026', courseId: 'crs-1', courseTitle: 'الفيزياء الكهربية والتيار المستمر — الصف الثالث الثانوي', used: false, usedBy: null, createdAt: 'اليوم، 10:15 ص' },
+      { id: 'cd-2', code: 'VIP-8840', courseId: 'crs-2', courseTitle: 'المراجعة النهائية في الفيزياء الحديثة — 3 ثانوي', used: false, usedBy: null, createdAt: 'أمس، 04:30 م' },
+      { id: 'cd-3', code: 'PHYS-4410', courseId: 'crs-1', courseTitle: 'الفيزياء الكهربية والتيار المستمر — الصف الثالث الثانوي', used: true, usedBy: 'يوسف طارق محمود', createdAt: 'منذ 3 أيام' }
+    ];
+
+    const DEFAULT_ASSESSMENTS = [
+      {
+        id: 'as-1',
+        kind: 'exam', // 'exam' | 'homework'
+        title: 'اختبار الفصل الأول: التيار الكهربي وقانون أوم',
+        courseTitle: 'الفيزياء الكهربية والتيار المستمر',
+        dueDate: 'مفتوح الآن — 15 دقيقة',
+        submissionsCount: 318,
+        avgScore: '88%',
+        questionPreview: 'إذا زاد طول سلك معدني إلى الضعف وقلت مساحة مقطعه إلى النصف، فإن مقاومته الكهربائية تزداد لأربعة أمثالها.'
+      },
+      {
+        id: 'as-2',
+        kind: 'homework',
+        title: 'واجب المحاضرة 2: مسائل اختزال المقاومات',
+        courseTitle: 'الفيزياء الكهربية والتيار المستمر',
+        dueDate: 'الخميس القادم — 10:00 م',
+        submissionsCount: 274,
+        avgScore: '18.5 / 20',
+        questionPreview: 'حل مسائل كتاب الشرح من صفحة 18 إلى 24 مع إرفاق خطوات الاختزال.'
+      }
+    ];
+
+    const DEFAULT_STUDENTS = [
+      { id: 'st-1', name: 'يوسف طارق محمود', studentPhone: '01012345678', parentPhone: '01198765432', course: 'الفيزياء الكهربية والتيار المستمر', progress: 92, examScore: 96 },
+      { id: 'st-2', name: 'مريم خالد إبراهيم', studentPhone: '01122334455', parentPhone: '01099887766', course: 'المراجعة النهائية في الفيزياء الحديثة', progress: 84, examScore: 91 },
+      { id: 'st-3', name: 'عمر حسام الدين', studentPhone: '01234567890', parentPhone: '01555443322', course: 'الفيزياء الكهربية والتيار المستمر', progress: 65, examScore: 79 },
+      { id: 'st-4', name: 'نور محمد سعيد', studentPhone: '01511223344', parentPhone: '01066778899', course: 'المراجعة النهائية في الفيزياء الحديثة', progress: 100, examScore: 100 }
+    ];
+
+    function getInitialState() {
+      const base = {
+        teachers: [],
+        currentTeacher: null,
+        topView: 'packages', // 'packages' | 'teacher'
+        authMode: 'register', // 'register' | 'login'
+        selectedPackageId: 'open',
+        billingCycle: 'monthly', // 'monthly' | 'yearly'
+        dashboardTab: 'courses', // 'courses' | 'codes' | 'assessments' | 'students'
+        courses: DEFAULT_COURSES,
+        codes: DEFAULT_CODES,
+        assessments: DEFAULT_ASSESSMENTS,
+        students: DEFAULT_STUDENTS,
+        authError: '',
+        toast: null
+      };
+
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return base;
+        const saved = JSON.parse(raw);
+        return {
+          ...base,
+          teachers: Array.isArray(saved.teachers) ? saved.teachers : [],
+          currentTeacher: saved.currentTeacher || null,
+          topView: saved.currentTeacher ? 'teacher' : 'packages',
+          selectedPackageId: saved.selectedPackageId || 'open',
+          dashboardTab: saved.dashboardTab || 'courses',
+          courses: Array.isArray(saved.courses) ? saved.courses : DEFAULT_COURSES,
+          codes: Array.isArray(saved.codes) ? saved.codes : DEFAULT_CODES,
+          assessments: Array.isArray(saved.assessments) ? saved.assessments : DEFAULT_ASSESSMENTS,
+          students: Array.isArray(saved.students) ? saved.students : DEFAULT_STUDENTS
+        };
+      } catch {
+        return base;
+      }
+    }
+
+    let state = getInitialState();
+    let toastTimeout = null;
+
+    function saveState() {
+      try {
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            teachers: state.teachers,
+            currentTeacher: state.currentTeacher,
+            selectedPackageId: state.selectedPackageId,
+            dashboardTab: state.dashboardTab,
+            courses: state.courses,
+            codes: state.codes,
+            assessments: state.assessments,
+            students: state.students
+          })
+        );
+      } catch (e) {
+        console.error('تعذر حفظ البيانات في التخزين المحلي:', e);
+      }
+    }
+
+    function showToast(text, type = 'success') {
+      state.toast = { text, type };
+      render();
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        state.toast = null;
+        render();
+      }, 3300);
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function isValidMobile(phone) {
+      return /^01[0125][0-9]{8}$/.test((phone || '').trim());
+    }
+
+    // =========================================================================
+    // دوال التفاعل والتنقل
+    // =========================================================================
+    window.switchTopView = function (view) {
+      state.topView = view;
+      state.authError = '';
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.setBillingCycle = function (cycle) {
+      state.billingCycle = cycle;
+      render();
+    };
+
+    window.choosePackageAndGoAuth = function (pkgId) {
+      state.selectedPackageId = pkgId;
+      if (state.currentTeacher) {
+        state.currentTeacher = { ...state.currentTeacher, packageId: pkgId };
+        state.teachers = state.teachers.map((t) =>
+          t.phone === state.currentTeacher.phone ? state.currentTeacher : t
+        );
+        state.topView = 'teacher';
+        saveState();
+        render();
+        const pkg = PACKAGES.find((p) => p.id === pkgId);
+        showToast(`تم تحديث باقتك إلى «${pkg?.name || ''}» بنجاح!`);
+        return;
+      }
+      state.authMode = 'register';
+      state.authError = '';
+      state.topView = 'teacher';
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.switchAuthMode = function (mode) {
+      state.authMode = mode;
+      state.authError = '';
+      render();
+    };
+
+    window.handleTeacherRegister = function (event) {
+      event.preventDefault();
+      const form = event.target;
+      const fullName = form.fullName.value.trim();
+      const phone = form.phone.value.trim();
+      const subject = form.subject.value.trim();
+      const email = form.email.value.trim();
+      const password = form.password.value.trim();
+      const packageId = form.packageId.value || state.selectedPackageId || 'open';
+
+      if (fullName.split(/\s+/).filter(Boolean).length < 2) {
+        state.authError = 'يرجى إدخال اسم المعلم بالكامل (اسمين على الأقل).';
+        render();
+        return;
+      }
+
+      if (!isValidMobile(phone)) {
+        state.authError = 'رقم الموبايل غير صحيح. يجب أن يبدأ بـ 010 أو 011 أو 012 أو 015 ومكون من 11 رقماً.';
+        render();
+        return;
+      }
+
+      if (!subject) {
+        state.authError = 'يرجى إدخال اسم المادة الدراسية.';
+        render();
+        return;
+      }
+
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        state.authError = 'صيغة البريد الإلكتروني غير صحيحة (يمكنك تركه فارغاً لأنه اختياري).';
+        render();
+        return;
+      }
+
+      if (password.length < 4) {
+        state.authError = 'يرجى إدخال كلمة مرور لا تقل عن 4 أحرف أو أرقام.';
+        render();
+        return;
+      }
+
+      const teacherAccount = {
+        fullName,
+        phone,
+        subject,
+        email,
+        password,
+        packageId
+      };
+
+      const existingIndex = state.teachers.findIndex((t) => t.phone === phone);
+      if (existingIndex >= 0) {
+        state.teachers[existingIndex] = teacherAccount;
+      } else {
+        state.teachers.unshift(teacherAccount);
+      }
+
+      state.currentTeacher = teacherAccount;
+      state.selectedPackageId = packageId;
+      state.authError = '';
+      state.topView = 'teacher';
+      state.dashboardTab = 'courses';
+      saveState();
+      render();
+      showToast(`تم إنشاء حسابك بنجاح يا أستاذ ${fullName}! مرحباً بك في منصة المعلم.`);
+    };
+
+    window.handleTeacherLogin = function (event) {
+      event.preventDefault();
+      const form = event.target;
+      const identifier = form.identifier.value.trim();
+      const password = form.password.value.trim();
+
+      if (!identifier || !password) {
+        state.authError = 'يرجى إدخال رقم الموبايل أو البريد الإلكتروني وكلمة المرور.';
+        render();
+        return;
+      }
+
+      const found = state.teachers.find(
+        (t) =>
+          (t.phone === identifier || (t.email && t.email.toLowerCase() === identifier.toLowerCase())) &&
+          t.password === password
+      );
+
+      if (!found) {
+        state.authError = 'بيانات الدخول غير مطابقة. تأكد من رقم الموبايل وكلمة المرور أو أنشئ حساب معلم جديد.';
+        render();
+        return;
+      }
+
+      state.currentTeacher = found;
+      state.selectedPackageId = found.packageId || 'open';
+      state.authError = '';
+      state.topView = 'teacher';
+      state.dashboardTab = 'courses';
+      saveState();
+      render();
+      showToast(`أهلاً بعودتك يا أستاذ ${found.fullName}!`);
+    };
+
+    window.logoutTeacher = function () {
+      state.currentTeacher = null;
+      state.authMode = 'login';
+      state.authError = '';
+      saveState();
+      render();
+      showToast('تم تسجيل الخروج من حساب المعلم.', 'info');
+    };
+
+    window.setDashboardTab = function (tab) {
+      state.dashboardTab = tab;
+      saveState();
+      render();
+    };
+
+    // إدارة الكورسات والمحاضرات
+    window.handleCreateCourse = function (event) {
+      event.preventDefault();
+      const form = event.target;
+      const title = form.title.value.trim();
+      const grade = form.grade.value;
+      const price = Math.max(0, Number(form.price.value) || 300);
+
+      if (!title) return;
+
+      const newCourse = {
+        id: 'crs-' + Date.now(),
+        title,
+        grade,
+        price,
+        studentsCount: 0,
+        published: true,
+        lessons: []
+      };
+
+      state.courses.unshift(newCourse);
+      form.reset();
+      saveState();
+      render();
+      showToast('تم إنشاء الكورس الجديد وحفظه بنجاح.');
+    };
+
+    window.handleAddLesson = function (event) {
+      event.preventDefault();
+      const form = event.target;
+      const courseId = form.courseId.value;
+      const title = form.title.value.trim();
+      const videoUrl = form.videoUrl.value.trim() || 'https://video.tafawoq.edu/stream';
+      const pdfNote = form.pdfNote.value.trim() || 'ملخص_المحاضرة.pdf';
+
+      if (!courseId || !title) return;
+
+      state.courses = state.courses.map((c) => {
+        if (c.id !== courseId) return c;
+        return {
+          ...c,
+          lessons: [
+            ...c.lessons,
+            {
+              id: 'les-' + Date.now(),
+              title,
+              videoUrl,
+              pdfNote,
+              published: true
+            }
+          ]
+        };
+      });
+
+      form.reset();
+      saveState();
+      render();
+      showToast('تمت إضافة المحاضرة وملف الـ PDF للكورس بنجاح.');
+    };
+
+    window.toggleCoursePublished = function (courseId) {
+      state.courses = state.courses.map((c) =>
+        c.id === courseId ? { ...c, published: !c.published } : c
+      );
+      saveState();
+      render();
+      showToast('تم تحديث حالة نشر الكورس.');
+    };
+
+    window.toggleLessonPublished = function (courseId, lessonId) {
+      state.courses = state.courses.map((c) => {
+        if (c.id !== courseId) return c;
+        return {
+          ...c,
+          lessons: c.lessons.map((l) =>
+            l.id === lessonId ? { ...l, published: !l.published } : l
+          )
+        };
+      });
+      saveState();
+      render();
+      showToast('تم تبديل حالة المحاضرة (منشور / مسودة).');
+    };
+
+    window.deleteCourse = function (courseId) {
+      state.courses = state.courses.filter((c) => c.id !== courseId);
+      saveState();
+      render();
+      showToast('تم حذف الكورس.', 'info');
+    };
+
+    // توليد أكواد التفعيل
+    window.handleGenerateCodes = function (event) {
+      event.preventDefault();
+      const form = event.target;
+      const courseId = form.courseId.value;
+      const mode = form.codeMode.value;
+      const customStr = (form.customCode?.value || '').trim().toUpperCase().replace(/\s+/g, '-');
+      const count = Math.min(20, Math.max(1, Number(form.count?.value) || 1));
+
+      const targetCourse = state.courses.find((c) => c.id === courseId) || state.courses[0];
+      if (!targetCourse) {
+        showToast('يرجى إضافة كورس أولاً قبل توليد الأكواد.', 'error');
+        return;
+      }
+
+      if (mode === 'custom') {
+        if (!customStr) {
+          showToast('يرجى كتابة الكود المخصص.', 'error');
+          return;
+        }
+        if (state.codes.some((c) => c.code.toUpperCase() === customStr)) {
+          showToast(`الكود ${customStr} مستخدم بالفعل في القائمة.`, 'error');
+          return;
+        }
+        state.codes.unshift({
+          id: 'cd-' + Date.now(),
+          code: customStr,
+          courseId: targetCourse.id,
+          courseTitle: targetCourse.title,
+          used: false,
+          usedBy: null,
+          createdAt: 'الآن (مخصص)'
+        });
+        saveState();
+        render();
+        showToast(`تم إنشاء الكود المخصص ${customStr} بنجاح.`);
+        return;
+      }
+
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      const created = [];
+      for (let i = 0; i < count; i++) {
+        let codeStr = 'TFQ-';
+        for (let j = 0; j < 6; j++) {
+          codeStr += chars[Math.floor(Math.random() * chars.length)];
+        }
+        created.push({
+          id: 'cd-' + Date.now() + '-' + i,
+          code: codeStr,
+          courseId: targetCourse.id,
+          courseTitle: targetCourse.title,
+          used: false,
+          usedBy: null,
+          createdAt: 'الآن'
+        });
+      }
+
+      state.codes = [...created, ...state.codes];
+      saveState();
+      render();
+      showToast(`تم توليد ${count} ${count === 1 ? 'كود تفعيل' : 'أكواد تفعيل'} بنجاح.`);
+    };
+
+    window.copyActivationCode = async function (codeStr) {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(codeStr);
+        }
+      } catch {}
+      showToast(`تم نسخ الكود: ${codeStr}`);
+    };
+
+    // إضافة واجب أو اختبار سريع
+    window.handleAddAssessment = function (event) {
+      event.preventDefault();
+      const form = event.target;
+      const kind = form.kind.value;
+      const title = form.title.value.trim();
+      const courseTitle = form.courseTitle.value;
+      const dueDate = form.dueDate.value.trim() || 'مفتوح للطلاب';
+      const questionPreview = form.questionPreview.value.trim();
+
+      if (!title) return;
+
+      state.assessments.unshift({
+        id: 'as-' + Date.now(),
+        kind,
+        title,
+        courseTitle,
+        dueDate,
+        submissionsCount: 0,
+        avgScore: 'جديد',
+        questionPreview: questionPreview || 'تمت الإضافة من لوحة تحكم المعلم.'
+      });
+
+      form.reset();
+      saveState();
+      render();
+      showToast(kind === 'exam' ? 'تم نشر الاختبار الإلكتروني للطلاب.' : 'تم إضافة الواجب المنزلي بنجاح.');
+    };
+
+    // =========================================================================
+    // قوالب العرض (الشريط العلوي فقط: الباقات + منصة المعلم)
+    // =========================================================================
+    function renderTopNavbar() {
+      const teacher = state.currentTeacher;
+      return `
+        <header class="sticky top-0 z-40 glass-header">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-3">
+            <!-- الشعار -->
+            <button type="button" onclick="switchTopView('packages')" class="flex items-center gap-3 text-right cursor-pointer group">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-emerald-500 text-white flex items-center justify-center shadow-lg shadow-indigo-600/25 group-hover:scale-105 transition-transform">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M22 10L12 5 2 10l10 5 10-5z"></path>
+                  <path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5"></path>
+                </svg>
+              </div>
+              <div>
+                <span class="text-lg font-black text-white block leading-tight">منصة تفوّق</span>
+                <span class="text-[11px] font-semibold text-slate-400 block">بوابة المعلمين</span>
+              </div>
+            </button>
+
+            <!-- الروابط الرئيسية العلوية (الباقات + منصة المعلم فقط) -->
+            <nav aria-label="التنقل الرئيسي" class="flex items-center bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800">
+              <button
+                type="button"
+                onclick="switchTopView('packages')"
+                class="px-5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer ${
+                  state.topView === 'packages'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                    : 'text-slate-300 hover:text-white'
+                }"
+              >
+                الباقات
+              </button>
+
+              <button
+                type="button"
+                onclick="switchTopView('teacher')"
+                class="px-5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer ${
+                  state.topView === 'teacher'
+                    ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/25'
+                    : 'text-slate-300 hover:text-white'
+                }"
+              >
+                منصة المعلم
+              </button>
+            </nav>
+
+            <!-- حالة الجلسة (تسجيل الدخول أو اسم المعلم + تسجيل الخروج) -->
+            <div class="flex items-center gap-2">
+              ${
+                teacher
+                  ? `
+                  <span class="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-extrabold text-slate-200">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span>أ. ${escapeHtml(teacher.fullName)}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onclick="logoutTeacher()"
+                    class="px-3.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-xs font-extrabold transition-colors cursor-pointer"
+                  >
+                    تسجيل الخروج
+                  </button>
+                `
+                  : `
+                  <button
+                    type="button"
+                    onclick="switchTopView('teacher'); switchAuthMode('login');"
+                    class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white border border-white/15 text-xs sm:text-sm font-extrabold transition-colors cursor-pointer"
+                  >
+                    تسجيل الدخول
+                  </button>
+                `
+              }
+            </div>
+          </div>
+        </header>
+      `;
+    }
+
+    // =========================================================================
+    // 1) صفحة الباقات (التسعير النفسي للمدرسين)
+    // =========================================================================
+    function renderPackagesPage() {
+      const isYearly = state.billingCycle === 'yearly';
+
+      return `
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16 space-y-12">
+          <!-- العنوان الافتتاحي -->
+          <section class="text-center max-w-3xl mx-auto space-y-4">
+            <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/15 border border-indigo-400/30 text-indigo-300 text-xs font-extrabold">
+              بدون نسبة عمولة على مبيعاتك — اشتراك شهري ثابت 100%
+            </span>
+            <h1 class="text-3xl sm:text-5xl font-black text-white leading-tight">
+              اختر باقة منصتك التعليمية
+              <span class="block text-transparent bg-clip-text bg-gradient-to-l from-amber-300 via-emerald-300 to-indigo-300 mt-1">
+                وابدأ استقبال طلابك اليوم
+              </span>
+            </h1>
+            <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+              قارن بين الباقات الثلاث المصممة لتناسب حجم مجموعاتك، ولاحظ كيف تمنحك <strong class="text-amber-300">الباقة المفتوحة</strong> حرية التوسع بلا حدود.
+            </p>
+
+            <!-- مبدّل الدفع الشهري والسنوي -->
+            <div class="pt-2">
+              <div class="inline-flex items-center bg-slate-900 p-1.5 rounded-2xl border border-slate-800">
+                <button
+                  type="button"
+                  onclick="setBillingCycle('monthly')"
+                  class="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer ${
+                    !isYearly ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                  }"
+                >
+                  اشتراك شهري
+                </button>
+                <button
+                  type="button"
+                  onclick="setBillingCycle('yearly')"
+                  class="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black flex items-center gap-2 transition-all cursor-pointer ${
+                    isYearly ? 'bg-amber-400 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+                  }"
+                >
+                  <span>اشتراك سنوي</span>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-slate-950/20 font-black">وفّر شهرين</span>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- بطاقات الباقات الثلاث (الأغلى في اليمين -> الفخ -> الأساسية في اليسار) -->
+          <section class="grid grid-cols-1 lg:grid-cols-3 gap-7 items-stretch">
+            ${PACKAGES.map((pkg) => {
+              const price = isYearly ? pkg.yearlyMonthlyPrice : pkg.monthlyPrice;
+              return `
+                <article class="rounded-3xl flex flex-col justify-between transition-all ${
+                  pkg.featured
+                    ? 'bg-gradient-to-b from-slate-900 via-indigo-950/90 to-slate-900 ring-2 ring-amber-400 shadow-2xl shadow-amber-500/10 lg:-translate-y-3'
+                    : 'glass-panel shadow-xl'
+                }">
+                  <div class="p-7">
+                    <div class="flex items-center justify-between gap-2 mb-4">
+                      <span class="text-xs font-black px-3.5 py-1.5 rounded-full ${
+                        pkg.featured
+                          ? 'bg-amber-400 text-slate-950'
+                          : pkg.decoy
+                          ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-400/30'
+                          : 'bg-slate-800 text-slate-300'
+                      }">
+                        ${escapeHtml(pkg.badge)}
+                      </span>
+                    </div>
+
+                    <h2 class="text-2xl font-black text-white mb-1.5">${escapeHtml(pkg.name)}</h2>
+                    <p class="text-xs sm:text-sm text-slate-300 mb-5">${escapeHtml(pkg.subtitle)}</p>
+
+                    <div class="p-4 rounded-2xl mb-6 ${
+                      pkg.featured ? 'bg-white/10 border border-white/15' : 'bg-slate-950/70 border border-slate-800'
+                    }">
+                      <div class="flex items-baseline gap-2">
+                        <span class="text-4xl font-black text-white">${price.toLocaleString('ar-EG')}</span>
+                        <span class="text-xs sm:text-sm font-bold text-slate-300">ج.م / شهرياً</span>
+                      </div>
+                      ${
+                        isYearly
+                          ? `<p class="text-xs mt-1 font-bold text-amber-300">إجمالي السنوي: ${(price * 12).toLocaleString('ar-EG')} ج.م (توفير شهرين)</p>`
+                          : ''
+                      }
+                      <p class="text-xs mt-2.5 font-extrabold leading-relaxed ${
+                        pkg.featured ? 'text-amber-300' : pkg.decoy ? 'text-indigo-300' : 'text-slate-400'
+                      }">
+                        ${escapeHtml(pkg.hook)}
+                      </p>
+                    </div>
+
+                    <ul class="space-y-3">
+                      ${pkg.features
+                        .map(
+                          (f) => `
+                        <li class="flex items-start gap-2.5 text-xs sm:text-sm">
+                          <span class="font-black mt-0.5 ${
+                            !f.ok ? 'text-slate-600' : f.warn ? 'text-amber-400' : 'text-emerald-400'
+                          }">
+                            ${f.ok ? '✓' : '✕'}
+                          </span>
+                          <span class="${
+                            !f.ok
+                              ? 'text-slate-500 line-through'
+                              : f.strong
+                              ? 'font-black text-white'
+                              : f.warn
+                              ? 'font-bold text-amber-300'
+                              : 'text-slate-200'
+                          }">
+                            ${escapeHtml(f.text)}
+                          </span>
+                        </li>
+                      `
+                        )
+                        .join('')}
+                    </ul>
+                  </div>
+
+                  <div class="p-7 pt-0">
+                    <div class="text-xs p-3 rounded-xl mb-4 flex items-center justify-between font-bold ${
+                      pkg.featured
+                        ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                        : 'bg-amber-500/10 text-amber-300 border border-amber-500/25'
+                    }">
+                      <span>الطالب الإضافي:</span>
+                      <span class="font-black">${escapeHtml(pkg.extraStudent)}</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onclick="choosePackageAndGoAuth('${pkg.id}')"
+                      class="w-full py-3.5 px-5 rounded-2xl font-black text-sm transition-all cursor-pointer ${
+                        pkg.featured
+                          ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-lg shadow-amber-500/25'
+                          : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                      }"
+                    >
+                      اشترك الآن
+                    </button>
+                  </div>
+                </article>
+              `;
+            }).join('')}
+          </section>
+
+          <!-- جدول المقارنة المالية -->
+          <section class="glass-panel rounded-3xl p-6 sm:p-8">
+            <h3 class="text-xl font-black text-white mb-2">لماذا يختار أغلب المدرسين «الباقة المفتوحة»؟</h3>
+            <p class="text-xs sm:text-sm text-slate-400 mb-6">
+              تُحسب رسوم <strong class="text-amber-300">+15 ج.م لكل طالب إضافي</strong> فوق الحد في الباقتين العادية والبرو، بينما تظل الباقة المفتوحة ثابتة مهما زاد عدد طلابك.
+            </p>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-right text-xs sm:text-sm border-collapse">
+                <thead>
+                  <tr class="border-b border-slate-800 text-slate-400">
+                    <th class="py-3.5 px-4 font-extrabold">وجه المقارنة</th>
+                    <th class="py-3.5 px-4 font-black text-amber-300 bg-indigo-950/50 rounded-t-xl">الباقة المفتوحة (2,199 ج.م)</th>
+                    <th class="py-3.5 px-4 font-extrabold">الباقة البرو (1,799 ج.م)</th>
+                    <th class="py-3.5 px-4 font-extrabold">الباقة العادية (799 ج.م)</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/80">
+                  <tr>
+                    <td class="py-3.5 px-4 font-bold text-slate-200">الحد الأقصى للطلاب</td>
+                    <td class="py-3.5 px-4 font-black text-emerald-400 bg-indigo-950/30">غير محدود</td>
+                    <td class="py-3.5 px-4 text-slate-300">300 طالب</td>
+                    <td class="py-3.5 px-4 text-slate-300">100 طالب</td>
+                  </tr>
+                  <tr>
+                    <td class="py-3.5 px-4 font-bold text-slate-200">التكلفة عند وجود 350 طالباً</td>
+                    <td class="py-3.5 px-4 font-black text-emerald-400 bg-indigo-950/30">2,199 ج.م فقط</td>
+                    <td class="py-3.5 px-4 font-bold text-rose-400">2,549 ج.م (1,799 + 50×15)</td>
+                    <td class="py-3.5 px-4 font-bold text-rose-400">4,549 ج.م (799 + 250×15)</td>
+                  </tr>
+                  <tr>
+                    <td class="py-3.5 px-4 font-bold text-slate-200">تطبيق موبايل باسم المدرس</td>
+                    <td class="py-3.5 px-4 font-black text-emerald-400 bg-indigo-950/30">مشمول مجاناً</td>
+                    <td class="py-3.5 px-4 text-slate-500">غير متاح</td>
+                    <td class="py-3.5 px-4 text-slate-500">غير متاح</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 2) بوابة إنشاء حساب المعلم / تسجيل الدخول (بدون أزرار تعبئة تجريبية)
+    // =========================================================================
+    function renderTeacherAuthGate() {
+      const isRegister = state.authMode === 'register';
+      const selectedPkg = PACKAGES.find((p) => p.id === state.selectedPackageId) || PACKAGES[0];
+
+      return `
+        <div class="max-w-xl mx-auto px-4 sm:px-6 pt-12 pb-16">
+          <div class="glass-panel rounded-3xl p-6 sm:p-9 shadow-2xl space-y-6">
+            <div class="text-center space-y-2">
+              <span class="inline-block text-xs font-extrabold px-3.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                بوابة المعلمين
+              </span>
+              <h1 class="text-2xl sm:text-3xl font-black text-white">
+                ${isRegister ? 'إنشاء حساب معلم جديد' : 'تسجيل الدخول إلى منصة المعلم'}
+              </h1>
+              <p class="text-xs sm:text-sm text-slate-400">
+                ${
+                  isRegister
+                    ? 'سجّل بياناتك لفتح لوحة تحكم منصتك وإدارة الكورسات وأكواد الطلاب فوراً.'
+                    : 'أدخل رقم الموبايل أو البريد الإلكتروني وكلمة المرور للوصول إلى لوحتك.'
+                }
+              </p>
+            </div>
+
+            <!-- تبويبات التبديل بين إنشاء حساب وتسجيل الدخول -->
+            <div class="grid grid-cols-2 gap-1.5 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
+              <button
+                type="button"
+                onclick="switchAuthMode('register')"
+                class="py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer ${
+                  isRegister ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                }"
+              >
+                إنشاء حساب جديد
+              </button>
+              <button
+                type="button"
+                onclick="switchAuthMode('login')"
+                class="py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer ${
+                  !isRegister ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                }"
+              >
+                تسجيل الدخول
+              </button>
+            </div>
+
+            ${
+              state.authError
+                ? `<div class="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-bold">${escapeHtml(state.authError)}</div>`
+                : ''
+            }
+
+            ${
+              isRegister
+                ? `
+              <form onsubmit="handleTeacherRegister(event)" class="space-y-4">
+                <div>
+                  <label class="block text-xs font-extrabold text-slate-300 mb-1.5">الاسم بالكامل <span class="text-rose-400">*</span></label>
+                  <input
+                    type="text"
+                    name="fullName"
+                    required
+                    placeholder="مثال: أحمد محمد المنشاوي"
+                    class="w-full px-4 py-3 rounded-xl bg-slate-950/90 border border-slate-800 text-white text-sm focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label class="block text-xs font-extrabold text-slate-300 mb-1.5">رقم الموبايل <span class="text-rose-400">*</span></label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      required
+                      dir="ltr"
+                      placeholder="01012345678"
+                      class="w-full px-4 py-3 rounded-xl bg-slate-950/90 border border-slate-800 text-white text-sm text-right focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-extrabold text-slate-300 mb-1.5">اسم المادة الدراسية <span class="text-rose-400">*</span></label>
+                    <input
+                      type="text"
+                      name="subject"
+                      required
+                      placeholder="مثال: الفيزياء / الرياضيات"
+                      class="w-full px-4 py-3 rounded-xl bg-slate-950/90 border border-slate-800 text-white text-sm focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label class="block text-xs font-extrabold text-slate-300 mb-1.5">البريد الإلكتروني <span class="text-slate-500 font-semibold">(اختياري)</span></label>
+                    <input
+                      type="email"
+                      name="email"
+                      dir="ltr"
+                      placeholder="teacher@example.com"
+                      class="w-full px-4 py-3 rounded-xl bg-slate-950/90 border border-slate-800 text-white text-sm text-right focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-extrabold text-slate-300 mb-1.5">كلمة المرور <span class="text-rose-400">*</span></label>
+                    <input
+                      type="password"
+                      name="password"
+                      required
+                      placeholder="••••••"
+                      class="w-full px-4 py-3 rounded-xl bg-slate-950/90 border border-slate-800 text-white text-sm focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-extrabold text-slate-300 mb-1.5">الباقة المختارة</label>
+                  <select
+                    name="packageId"
+                    class="w-full px-4 py-3 rounded-xl bg-slate-950/90 border border-slate-800 text-white text-sm font-bold focus:outline-none focus:border-indigo-500"
+                  >
+                    ${PACKAGES.map(
+                      (p) => `
+                      <option value="${p.id}" ${p.id === selectedPkg.id ? 'selected' : ''}>
+                        ${escapeHtml(p.name)} — ${p.monthlyPrice.toLocaleString('ar-EG')} ج.م/شهرياً
+                      </option>
+                    `
+                    ).join('')}
+                  </select>
+                </div>
+
+                <button
+                  type="submit"
+                  class="w-full py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-black shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+                >
+                  إنشاء حساب المعلم وفتح المنصة
+                </button>
+              </form>
+            `
+                : `
+              <form onsubmit="handleTeacherLogin(event)" class="space-y-4">
+                <div>
+                  <label class="block text-xs font-extrabold text-slate-300 mb-1.5">رقم الموبايل أو البريد الإلكتروني</label>
+                  <input
+                    type="text"
+                    name="identifier"
+                    required
+                    placeholder="أدخل رقم الموبايل أو البريد الإلكتروني"
+                    class="w-full px-4 py-3 rounded-xl bg-slate-950/90 border border-slate-800 text-white text-sm focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-extrabold text-slate-300 mb-1.5">كلمة المرور</label>
+                  <input
+                    type="password"
+                    name="password"
+                    required
+                    placeholder="••••••"
+                    class="w-full px-4 py-3 rounded-xl bg-slate-950/90 border border-slate-800 text-white text-sm focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  class="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-black shadow-lg shadow-indigo-600/25 transition-all cursor-pointer"
+                >
+                  تسجيل الدخول إلى منصة المعلم
+                </button>
+              </form>
+            `
+            }
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 3) لوحة تحكم منصة المعلم (تفتح تلقائياً بعد التسجيل أو الدخول)
+    // =========================================================================
+    function renderTeacherDashboard() {
+      const teacher = state.currentTeacher;
+      const pkg = PACKAGES.find((p) => p.id === (teacher.packageId || state.selectedPackageId)) || PACKAGES[0];
+
+      const totalStudents = state.courses.reduce((sum, c) => sum + (Number(c.studentsCount) || 0), 0);
+      const activeCoursesCount = state.courses.filter((c) => c.published).length;
+      const activeCodesCount = state.codes.filter((c) => !c.used).length;
+      const avgExamScore = state.students.length
+        ? Math.round(state.students.reduce((s, st) => s + st.examScore, 0) / state.students.length)
+        : 0;
+
+      const tabs = [
+        { id: 'courses', label: 'الكورسات والمحاضرات', count: state.courses.length },
+        { id: 'codes', label: 'أكواد التفعيل', count: state.codes.length },
+        { id: 'assessments', label: 'الواجبات والاختبارات', count: state.assessments.length },
+        { id: 'students', label: 'متابعة الطلاب والنتائج', count: state.students.length }
+      ];
+
+      let tabBody = '';
+
+      // تبويب 1: الكورسات والمحاضرات
+      if (state.dashboardTab === 'courses') {
+        tabBody = `
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-7">
+            <div class="lg:col-span-5 space-y-6">
+              <!-- إنشاء كورس جديد -->
+              <form onsubmit="handleCreateCourse(event)" class="glass-panel p-6 rounded-3xl space-y-4">
+                <h3 class="text-lg font-black text-white">إنشاء كورس جديد</h3>
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 mb-1.5">عنوان الكورس</label>
+                  <input type="text" name="title" required placeholder="مثال: مراجعة ليلة الامتحان — ${escapeHtml(teacher.subject)}" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm" />
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1.5">الصف الدراسي</label>
+                    <select name="grade" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs sm:text-sm">
+                      <option>الصف الثالث الثانوي - ثانوية عامة</option>
+                      <option>الصف الثاني الثانوي</option>
+                      <option>الصف الأول الثانوي</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1.5">سعر الكورس (ج.م)</label>
+                    <input type="number" name="price" min="0" value="350" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm" />
+                  </div>
+                </div>
+                <button type="submit" class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-black cursor-pointer">
+                  إضافة الكورس
+                </button>
+              </form>
+
+              <!-- إضافة محاضرة -->
+              <form onsubmit="handleAddLesson(event)" class="glass-panel p-6 rounded-3xl space-y-4">
+                <h3 class="text-lg font-black text-white">إضافة محاضرة وملف PDF</h3>
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 mb-1.5">اختر الكورس</label>
+                  <select name="courseId" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm">
+                    ${state.courses.map((c) => `<option value="${c.id}">${escapeHtml(c.title)}</option>`).join('')}
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 mb-1.5">عنوان المحاضرة</label>
+                  <input type="text" name="title" required placeholder="مثال: شرح أفكار المسائل المتقدمة" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm" />
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1.5">رابط الفيديو</label>
+                    <input type="text" name="videoUrl" placeholder="https://..." class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1.5">اسم ملف PDF</label>
+                    <input type="text" name="pdfNote" placeholder="ملخص_الدرس.pdf" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs" />
+                  </div>
+                </div>
+                <button type="submit" class="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-black cursor-pointer">
+                  نشر المحاضرة
+                </button>
+              </form>
+            </div>
+
+            <!-- قائمة الكورسات -->
+            <div class="lg:col-span-7 space-y-4">
+              ${state.courses
+                .map(
+                  (c) => `
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+                    <div>
+                      <div class="flex flex-wrap items-center gap-2 mb-1.5">
+                        <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300">${escapeHtml(c.grade)}</span>
+                        <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full ${
+                          c.published ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+                        }">
+                          ${c.published ? 'منشور' : 'مسودة'}
+                        </span>
+                      </div>
+                      <h4 class="text-lg font-black text-white">${escapeHtml(c.title)}</h4>
+                      <p class="text-xs text-slate-400 mt-1">
+                        السعر: <strong class="text-white">${c.price} ج.م</strong> • الطلاب: <strong class="text-white">${c.studentsCount}</strong> • المحاضرات: <strong class="text-white">${c.lessons.length}</strong>
+                      </p>
+                    </div>
+
+                    <div class="flex items-center gap-2 self-start sm:self-center">
+                      <button type="button" onclick="toggleCoursePublished('${c.id}')" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-extrabold text-white cursor-pointer">
+                        ${c.published ? 'تحويل لمسودة' : 'نشر الكورس'}
+                      </button>
+                      <button type="button" onclick="deleteCourse('${c.id}')" class="px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 text-xs font-extrabold cursor-pointer">
+                        حذف
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="space-y-2">
+                    ${
+                      c.lessons.length === 0
+                        ? `<p class="text-xs text-slate-500">لا توجد محاضرات مضافة لهذا الكورس بعد.</p>`
+                        : c.lessons
+                            .map(
+                              (l, idx) => `
+                          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80 text-xs sm:text-sm">
+                            <div>
+                              <span class="font-bold text-slate-200">${idx + 1}. ${escapeHtml(l.title)}</span>
+                              <span class="block text-[11px] text-slate-400 mt-0.5">📄 ${escapeHtml(l.pdfNote)}</span>
+                            </div>
+                            <button type="button" onclick="toggleLessonPublished('${c.id}', '${l.id}')" class="px-3 py-1 rounded-lg text-xs font-extrabold self-start sm:self-center cursor-pointer ${
+                                l.published ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+                              }">
+                              ${l.published ? 'منشور' : 'مسودة'}
+                            </button>
+                          </div>
+                        `
+                            )
+                            .join('')
+                    }
+                  </div>
+                </div>
+              `
+                )
+                .join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      // تبويب 2: أكواد التفعيل
+      if (state.dashboardTab === 'codes') {
+        tabBody = `
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-7">
+            <form onsubmit="handleGenerateCodes(event)" class="lg:col-span-5 glass-panel p-6 rounded-3xl space-y-4 h-fit">
+              <h3 class="text-lg font-black text-white">توليد أكواد تفعيل للطلاب</h3>
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1.5">الكورس المرتبط بالكود</label>
+                <select name="courseId" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm">
+                  ${state.courses.map((c) => `<option value="${c.id}">${escapeHtml(c.title)}</option>`).join('')}
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1.5">طريقة التوليد</label>
+                <select name="codeMode" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm">
+                  <option value="random">أكواد عشوائية تلقائية</option>
+                  <option value="custom">كود مخصص باسم محدد</option>
+                </select>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 mb-1.5">العدد (للعشوائي)</label>
+                  <input type="number" name="count" min="1" max="20" value="3" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm" />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 mb-1.5">الكود المخصص</label>
+                  <input type="text" name="customCode" placeholder="MISTER-2026" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm font-mono uppercase" />
+                </div>
+              </div>
+
+              <button type="submit" class="w-full py-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-sm font-black cursor-pointer">
+                توليد الأكواد الآن
+              </button>
+            </form>
+
+            <div class="lg:col-span-7 glass-panel p-6 rounded-3xl space-y-3">
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="text-lg font-black text-white">سجل أكواد التفعيل (${state.codes.length})</h3>
+                <span class="text-xs text-emerald-300 font-bold">متاح: ${activeCodesCount}</span>
+              </div>
+
+              ${state.codes
+                .map(
+                  (item) => `
+                <div class="p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                  item.used ? 'bg-slate-950/50 border-slate-800 opacity-70' : 'bg-indigo-950/35 border-indigo-500/30'
+                }">
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <code class="px-3 py-1 rounded-lg bg-slate-950 border border-slate-700 text-sm font-black text-amber-300">
+                        ${escapeHtml(item.code)}
+                      </code>
+                      <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full ${
+                        item.used ? 'bg-slate-800 text-slate-400' : 'bg-emerald-500/20 text-emerald-300'
+                      }">
+                        ${item.used ? 'مُستخدم' : 'متاح'}
+                      </span>
+                    </div>
+                    <p class="text-xs text-slate-300 mt-1.5 font-semibold">${escapeHtml(item.courseTitle)}</p>
+                    <p class="text-[11px] text-slate-500 mt-0.5">${escapeHtml(item.createdAt)}${item.usedBy ? ` • الطالب: ${escapeHtml(item.usedBy)}` : ''}</p>
+                  </div>
+
+                  <button type="button" onclick="copyActivationCode('${escapeHtml(item.code)}')" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-extrabold text-white cursor-pointer self-start sm:self-center">
+                    نسخ الكود
+                  </button>
+                </div>
+              `
+                )
+                .join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      // تبويب 3: الواجبات والاختبارات
+      if (state.dashboardTab === 'assessments') {
+        tabBody = `
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-7">
+            <form onsubmit="handleAddAssessment(event)" class="lg:col-span-5 glass-panel p-6 rounded-3xl space-y-4 h-fit">
+              <h3 class="text-lg font-black text-white">إضافة اختبار أو واجب جديد</h3>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 mb-1.5">النوع</label>
+                  <select name="kind" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm">
+                    <option value="exam">اختبار إلكتروني</option>
+                    <option value="homework">واجب منزلي</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 mb-1.5">موعد التسليم / المدة</label>
+                  <input type="text" name="dueDate" placeholder="الخميس — 15 دقيقة" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs" />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1.5">الكورس التابع له</label>
+                <select name="courseTitle" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm">
+                  ${state.courses.map((c) => `<option value="${escapeHtml(c.title)}">${escapeHtml(c.title)}</option>`).join('')}
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1.5">عنوان الاختبار أو الواجب</label>
+                <input type="text" name="title" required placeholder="مثال: اختبار شامل على الفصل الأول" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1.5">وصف أو نموذج سؤال</label>
+                <textarea name="questionPreview" rows="3" placeholder="اكتب تفاصيل الواجب أو السؤال الرئيسي..." class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs"></textarea>
+              </div>
+
+              <button type="submit" class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-black cursor-pointer">
+                نشر للطلاب
+              </button>
+            </form>
+
+            <div class="lg:col-span-7 space-y-4">
+              ${state.assessments
+                .map(
+                  (a) => `
+                <div class="glass-panel p-6 rounded-3xl space-y-3">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="text-xs font-extrabold px-3 py-1 rounded-full ${
+                      a.kind === 'exam' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-amber-500/20 text-amber-300'
+                    }">
+                      ${a.kind === 'exam' ? 'اختبار إلكتروني' : 'واجب منزلي'}
+                    </span>
+                    <span class="text-xs text-slate-400 font-bold">${escapeHtml(a.dueDate)}</span>
+                  </div>
+                  <h4 class="text-lg font-black text-white">${escapeHtml(a.title)}</h4>
+                  <p class="text-xs text-slate-400 font-semibold">${escapeHtml(a.courseTitle)}</p>
+                  <p class="text-xs sm:text-sm text-slate-300 bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800">
+                    ${escapeHtml(a.questionPreview)}
+                  </p>
+                  <div class="flex items-center justify-between text-xs pt-1 text-slate-300">
+                    <span>عدد التسليمات: <strong class="text-white">${a.submissionsCount} طالب</strong></span>
+                    <span>متوسط الدرجات: <strong class="text-emerald-400">${escapeHtml(a.avgScore)}</strong></span>
+                  </div>
+                </div>
+              `
+                )
+                .join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      // تبويب 4: متابعة الطلاب والنتائج
+      if (state.dashboardTab === 'students') {
+        tabBody = `
+          <div class="glass-panel rounded-3xl overflow-hidden">
+            <div class="p-6 border-b border-slate-800">
+              <h3 class="text-lg font-black text-white">تقرير الطلاب ودرجات الاختبارات وأرقام أولياء الأمور</h3>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-right text-xs sm:text-sm">
+                <thead class="bg-slate-950/70 text-slate-400 font-extrabold">
+                  <tr>
+                    <th class="py-3.5 px-6">اسم الطالب</th>
+                    <th class="py-3.5 px-6">هاتف الطالب</th>
+                    <th class="py-3.5 px-6">رقم ولي الأمر</th>
+                    <th class="py-3.5 px-6">الكورس</th>
+                    <th class="py-3.5 px-6">الإنجاز</th>
+                    <th class="py-3.5 px-6">درجة الاختبار</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/80">
+                  ${state.students
+                    .map(
+                      (st) => `
+                    <tr class="hover:bg-slate-900/50">
+                      <td class="py-4 px-6 font-extrabold text-white">${escapeHtml(st.name)}</td>
+                      <td class="py-4 px-6 text-slate-300 font-mono" dir="ltr">${escapeHtml(st.studentPhone)}</td>
+                      <td class="py-4 px-6 text-amber-300 font-mono font-bold" dir="ltr">${escapeHtml(st.parentPhone)}</td>
+                      <td class="py-4 px-6 text-slate-300">${escapeHtml(st.course)}</td>
+                      <td class="py-4 px-6 font-extrabold text-indigo-300">${st.progress}%</td>
+                      <td class="py-4 px-6">
+                        <span class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-black text-xs">
+                          ${st.examScore}%
+                        </span>
+                      </td>
+                    </tr>
+                  `
+                    )
+                    .join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-16 space-y-8">
+          <!-- رأس ترحيبي للمعلم المسجل -->
+          <section class="glass-panel rounded-3xl p-6 sm:p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            <div class="space-y-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-black px-3.5 py-1 rounded-full bg-amber-400 text-slate-950">
+                  باقتك الحالية: ${escapeHtml(pkg.name)}
+                </span>
+                <span class="text-xs font-extrabold px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
+                  مادة: ${escapeHtml(teacher.subject)}
+                </span>
+              </div>
+              <h1 class="text-2xl sm:text-3xl font-black text-white">أهلاً بك يا أستاذ ${escapeHtml(teacher.fullName)}</h1>
+              <p class="text-xs sm:text-sm text-slate-400">
+                رقم الموبايل: <strong class="text-slate-200" dir="ltr">${escapeHtml(teacher.phone)}</strong>
+                ${teacher.email ? ` • البريد: <strong class="text-slate-200" dir="ltr">${escapeHtml(teacher.email)}</strong>` : ''}
+              </p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onclick="switchTopView('packages')"
+                class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold cursor-pointer"
+              >
+                ترقية أو تغيير الباقة
+              </button>
+              <button
+                type="button"
+                onclick="logoutTeacher()"
+                class="px-4 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-xs font-extrabold cursor-pointer"
+              >
+                تسجيل الخروج
+              </button>
+            </div>
+          </section>
+
+          <!-- بطاقات الإحصائيات السريعة (KPIs) -->
+          <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div class="glass-panel p-5 rounded-2xl">
+              <span class="text-xs font-bold text-slate-400">إجمالي الطلاب</span>
+              <p class="text-3xl font-black text-white mt-1.5">${totalStudents.toLocaleString('ar-EG')}</p>
+              <span class="text-xs text-emerald-400 font-bold mt-1 block">${pkg.id === 'open' ? 'سعة غير محدودة' : 'ضمن حد الباقة'}</span>
+            </div>
+
+            <div class="glass-panel p-5 rounded-2xl">
+              <span class="text-xs font-bold text-slate-400">الكورسات النشطة</span>
+              <p class="text-3xl font-black text-white mt-1.5">${activeCoursesCount}</p>
+              <span class="text-xs text-slate-400 font-semibold mt-1 block">من إجمالي ${state.courses.length} كورسات</span>
+            </div>
+
+            <div class="glass-panel p-5 rounded-2xl">
+              <span class="text-xs font-bold text-slate-400">الأكواد المُفعّلة / المتاحة</span>
+              <p class="text-3xl font-black text-amber-300 mt-1.5">${activeCodesCount}</p>
+              <span class="text-xs text-slate-400 font-semibold mt-1 block">من إجمالي ${state.codes.length} كود</span>
+            </div>
+
+            <div class="glass-panel p-5 rounded-2xl">
+              <span class="text-xs font-bold text-slate-400">متوسط درجات الاختبارات</span>
+              <p class="text-3xl font-black text-emerald-400 mt-1.5">${avgExamScore}%</p>
+              <span class="text-xs text-slate-400 font-semibold mt-1 block">تقييم تلقائي للطلاب</span>
+            </div>
+          </section>
+
+          <!-- تبويبات لوحة تحكم المعلم -->
+          <nav class="flex flex-wrap gap-2 bg-slate-900/90 p-2 rounded-2xl border border-slate-800">
+            ${tabs
+              .map(
+                (t) => `
+              <button
+                type="button"
+                onclick="setDashboardTab('${t.id}')"
+                class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black flex items-center gap-2 transition-all cursor-pointer ${
+                  state.dashboardTab === t.id
+                    ? 'bg-indigo-600 text-white shadow'
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }"
+              >
+                <span>${t.label}</span>
+                <span class="text-[11px] px-2 py-0.5 rounded-full ${
+                  state.dashboardTab === t.id ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'
+                }">${t.count}</span>
+              </button>
+            `
+              )
+              .join('')}
+          </nav>
+
+          <!-- محتوى التبويب النشط -->
+          <div>${tabBody}</div>
+        </div>
+      `;
+    }
+
+    function render() {
+      const root = document.getElementById('app');
+      if (!root) return;
+
+      let mainContent = '';
+      if (state.topView === 'packages') {
+        mainContent = renderPackagesPage();
+      } else {
+        mainContent = state.currentTeacher ? renderTeacherDashboard() : renderTeacherAuthGate();
+      }
+
+      const toastHtml = state.toast
+        ? `
+          <div class="fixed bottom-5 left-5 z-50 max-w-sm bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-2.5 text-xs sm:text-sm font-bold">
+            <span class="w-2.5 h-2.5 rounded-full shrink-0 ${
+              state.toast.type === 'error' ? 'bg-rose-400' : state.toast.type === 'info' ? 'bg-sky-400' : 'bg-emerald-400'
+            }"></span>
+            <span>${escapeHtml(state.toast.text)}</span>
+          </div>
+        `
+        : '';
+
+      root.innerHTML = `
+        ${renderTopNavbar()}
+        <main class="flex-1">${mainContent}</main>
+        <footer class="glass-header py-5 px-4 text-xs text-slate-500">
+          <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p class="font-bold text-slate-400">منصة تفوّق التعليمية — بوابة المعلمين وإدارة الباقات.</p>
+            <p>تُحفظ بيانات حساب المعلم والكورسات والأكواد تلقائياً في المتصفح.</p>
+          </div>
+        </footer>
+        ${toastHtml}
+      `;
+    }
+
+    render();
+  </script>
+</body>
+</html>
